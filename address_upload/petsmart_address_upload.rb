@@ -10,7 +10,7 @@ require 'roo'
 class BatchUpdate
   attr_accessor :username, :password, :input_file_name, :env, :company, :errors_file_name, :headers, :url, :errors , :invalid_addresses
 
-  BATCH_SIZE = 100
+  BATCH_SIZE = 50
   
   ROW_HEADING = [:address_id, :location_id, :ship_to, :stop_name, :address_line_1, :address_line_2, :city, :state, :zip, :country,
     :load_unload_time, :latitude, :longitude, :geofence_radius, :polygon_coordinates, :tags, :mon_open, :mon_close, :tues_open, :tues_close,
@@ -69,7 +69,7 @@ class BatchUpdate
 
       if i % BATCH_SIZE == 0 and i > 1
         puts "processing row #{i}"
-        batch_create payloads, i / BATCH_SIZE 
+        batch_create payloads, i / BATCH_SIZE if payloads.present?
         payloads = []
       end
     end
@@ -333,12 +333,12 @@ class BatchUpdate
     geofence_radius = get_geofence_radius(row_hash)
     cut_off_time_array, cut_off_time_enabled = get_cut_off_times(row_hash)
     tags = get_tags(row_hash)
-    
+    row_hash[:stop_name] = row_hash[:stop_name].to_i
     json_hash = {"enabledCheckboxLabel" => "Business hours for this stop", "locationId" => row_hash[:location_id].to_s, "curatedAddressLine1" => row_hash[:address_line_1], 
       "curatedAddressLine2" => row_hash[:address_line_2], "curatedCity" => row_hash[:city], "curatedState" => row_hash[:state],
       "curatedPostal" => row_hash[:zip], "country" => row_hash[:country], "latitude" => row_hash[:latitude], "longitude" => row_hash[:longitude],
-      "name" => row_hash[:stop_name], "unloadTimeInMinutes" => row_hash[:load_unload_time], "tags" => tags, "isCutoffTimeEnabled" => true, "reverseGeocode" => false,
-      "geofencePoints" => geofence_points, "geofenceRadius" => geofence_radius, "cutoffTimes" => [], "timezone" => row_hash[:timezone]}
+      "name" => row_hash[:stop_name].to_s, "unloadTimeInMinutes" => row_hash[:load_unload_time], "tags" => tags, "isCutoffTimeEnabled" => true, "reverseGeocode" => false,
+      "geofencePoints" => geofence_points, "geofenceRadius" => geofence_radius, "cutoffTimes" => []}
     json_hash["cutoffTimes"] = cut_off_time_array if cut_off_time_enabled
 
 
@@ -347,7 +347,7 @@ class BatchUpdate
 
   def valid_address?(payload)
     (payload['curatedAddressLine1'].present? || (payload['curatedCity'].present? && payload['curatedState'].present? && payload['country'].present?) || (payload['latitude'].present? && 
-      payload['longitude'].present?)) && payload['locationId'] != 'V50025505'
+      payload['longitude'].present?))
   end
   
   def batch_create(payloads, batch_num)
@@ -390,7 +390,7 @@ class BatchUpdate
       errors << "\n"
     ensure
       puts "sleep for 10 seconds"
-      sleep 10
+      sleep 5
     end
   end
   
@@ -485,6 +485,7 @@ end
 
 start = Time.now
 updater = BatchUpdate.new
+/Users/manojsv/Desktop/petsmart_trac6123.csv
 updater.process_file
 finish = Time.now
 puts "Took #{finish-start} seconds.."
