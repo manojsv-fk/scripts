@@ -120,7 +120,7 @@ class DeleteDeactivatedUsers
   accounts_with_specified_email = @all_users_of_company.where(email_address: user_hash[:email_address])#, active: false)
   puts "More than one account with email #{user_hash[:email_address]}" if accounts_with_specified_email.count > 1
   user_to_delete = accounts_with_specified_email.first
-  # user_to_delete.delete if user_to_delete.present?
+  user_to_delete.delete if user_to_delete.present?
   puts "Not deleted #{user_hash[:email_address]}" unless user_to_delete.present?
   @not_deleted << user_hash[:email_address] unless user_to_delete.present?
 
