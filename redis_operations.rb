@@ -10,7 +10,7 @@ class RedisOperations
   def store_keys_matching_pattern
     File.open(@output_file, "w+") do |f|
       while true
-        s = REDIS.scan(@cursor, match: @pattern)
+        s = REDIS.scan(@cursor, match: @pattern, count: 1000)
         f.puts(s.last)
         @all_redis_keys += s.last
         @cursor = s.first
@@ -26,12 +26,13 @@ class RedisOperations
   end
 
   def delete_redis_keys
-    @all_redis_keys.each_slice(100).to_a.each_with_index do |batch, index|
+    @all_redis_keys.each_slice(1000).to_a.each_with_index do |batch, index|
       puts "Batch #{index} to delete"
-      p batch
       REDIS.del(*batch)
-      sleep 2
+      puts "Deleted keys"
+      sleep 0.1
     end
+    @all_redis_keys.clear
   end
 
   def delete_keys_from_file(output_file)
@@ -44,9 +45,16 @@ class RedisOperations
   end
 end
 
-redis_operations = RedisOperations.new("manoj*", "/Users/manojsv/Documents/GitHub/manoj.txt")
+redis_operations = RedisOperations.new("Google::ResolveTimezone::V2*", "/home/ec2-user/redis-keys2.txt")
+start_time = Time.now
 redis_operations.store_keys_matching_pattern
+end_time = Time.now
+
+puts "Time taken #{end_time - start_time}"
 redis_operations.get_redis_keys
 redis_operations.delete_redis_keys
 
 redis_operations.delete_keys_from_file("/Users/manojsv/Documents/GitHub/manoj.txt")
+redis_operations.delete_keys_from_file("/home/ec2-user/redis-keys2.txt")
+
+
